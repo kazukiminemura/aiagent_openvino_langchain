@@ -7,6 +7,24 @@ from pathlib import Path
 from app.agent.runner import MVPAgent
 
 
+class FakePlanner:
+    def __init__(self, decision: dict):
+        self._decision = decision
+
+    def plan(self, user_prompt: str) -> dict:
+        return self._decision
+
+
+class BrokenPlanner:
+    def plan(self, user_prompt: str) -> dict:
+        raise ValueError("Planner returned invalid JSON")
+
+
+class RuntimeBrokenPlanner:
+    def plan(self, user_prompt: str) -> dict:
+        raise RuntimeError("Missing dependencies. Install: pip install transformers optimum-intel openvino")
+
+
 class AgentAutoToolSelectionTests(unittest.TestCase):
     def setUp(self) -> None:
         self.base = Path("workspace")
@@ -18,37 +36,65 @@ class AgentAutoToolSelectionTests(unittest.TestCase):
         if self.base.exists():
             shutil.rmtree(self.base)
 
-    def test_auto_selects_document_create(self) -> None:
-        agent = MVPAgent()
-        prompt = "議事録を作成して notesフォルダ に md で保存して"
-        result = agent.run_prompt(prompt)
+    def test_runs_document_create_from_planner_decision(self) -> None:
+        planner = FakePlanner(
+            {
+                "action": "use_tool",
+                "tool_name": "document_create_tool",
+                "arguments": {
+                    "title": "議事録",
+                    "content": "内容",
+                    "format": "md",
+                    "output_dir": "notes",
+                },
+            }
+        )
+        agent = MVPAgent(planner=planner)
+        result = agent.run_prompt("dummy")
 
         self.assertEqual(result.data["selected_tool"], "document_create_tool")
         saved_path = Path(result.data["tool_output"]["saved_path"])
         self.assertTrue(saved_path.exists())
 
-    def test_auto_selects_file_search(self) -> None:
-        agent = MVPAgent()
-        prompt = "workspace/notes配下で *.md を検索して 5件 返して"
-        result = agent.run_prompt(prompt)
+    def test_runs_file_search_from_planner_decision(self) -> None:
+        planner = FakePlanner(
+            {
+                "action": "use_tool",
+                "tool_name": "file_search_tool",
+                "arguments": {
+                    "root_path": "workspace/notes",
+                    "pattern": "*.md",
+                    "max_results": 5,
+                },
+            }
+        )
+        agent = MVPAgent(planner=planner)
+        result = agent.run_prompt("dummy")
 
         self.assertEqual(result.data["selected_tool"], "file_search_tool")
         self.assertGreaterEqual(len(result.data["tool_output"]), 1)
 
-    def test_auto_selects_file_search_for_python_listing(self) -> None:
-        agent = MVPAgent()
-        prompt = "app以下のpythonファイルを教えて"
-        result = agent.run_prompt(prompt)
+    def test_returns_direct_response_when_planner_responds(self) -> None:
+        planner = FakePlanner({"action": "respond", "answer": "これはツール不要です"})
+        agent = MVPAgent(planner=planner)
+        result = agent.run_prompt("dummy")
+
+        self.assertEqual(result.message, "これはツール不要です")
+        self.assertIsNone(result.data["selected_tool"])
+
+    def test_falls_back_when_planner_output_is_invalid(self) -> None:
+        agent = MVPAgent(planner=BrokenPlanner())
+        result = agent.run_prompt("app以下のpythonファイルを教えて")
 
         self.assertEqual(result.data["selected_tool"], "file_search_tool")
-        self.assertEqual(result.data["tool_input"]["root_path"], "app")
-        self.assertEqual(result.data["tool_input"]["pattern"], "*.py")
-        self.assertGreaterEqual(len(result.data["tool_output"]), 1)
+        self.assertIn("fallback planner used", result.message)
+        self.assertIn("invalid JSON", result.data["fallback_reason"])
 
-    def test_auto_uses_this_pc_keyword(self) -> None:
-        agent = MVPAgent()
-        params = agent._extract_search_params("このコンピュータの中から *.py を検索して")
-        self.assertEqual(params["root_path"], "this_pc")
+    def test_runtime_error_falls_back(self) -> None:
+        agent = MVPAgent(planner=RuntimeBrokenPlanner())
+        result = agent.run_prompt("app以下のpythonファイルを教えて")
+        self.assertEqual(result.data["selected_tool"], "file_search_tool")
+        self.assertIn("fallback planner used", result.message)
 
 
 if __name__ == "__main__":

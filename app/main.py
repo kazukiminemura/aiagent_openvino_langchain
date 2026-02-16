@@ -4,6 +4,7 @@ import argparse
 import json
 
 from app.agent.runner import MVPAgent
+from app.llm.openvino_qwen import OpenVINOQwen
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -23,6 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     chat_parser = subparsers.add_parser("chat", help="Auto-select tool from a natural language prompt")
     chat_parser.add_argument("--prompt", required=True, help="Natural language instruction")
+    subparsers.add_parser("download-model", help="Download/prepare LLM model to local cache")
 
     return parser
 
@@ -56,6 +58,12 @@ def main() -> int:
         result = agent.run_prompt(args.prompt)
         print(result.message)
         print(json.dumps(result.data, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "download-model":
+        llm = OpenVINOQwen()
+        source = llm.ensure_model_downloaded()
+        print(f"Model is ready: {source}")
         return 0
 
     raise ValueError(f"Unsupported command: {args.command}")

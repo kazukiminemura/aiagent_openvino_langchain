@@ -1,8 +1,11 @@
 ﻿# Core runtime
 pydantic>=2.8,<3
 langchain-core>=0.3,<0.4
+langgraph>=0.2,<0.3
 
-# OpenVINO + Qwen3 runtime (optional for current document-only MVP path)
-transformers>=4.45,<5
-optimum[openvino]>=1.23,<2
-openvino>=2025.0.0
+# OpenVINO + Qwen3 runtime (pinned compatibility set)
+torch==2.10.0
+transformers==4.53.3
+optimum-intel==1.25.2
+openvino==2025.4.1
+huggingface-hub==0.36.0
