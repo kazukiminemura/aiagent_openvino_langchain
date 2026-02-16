@@ -1,0 +1,8 @@
+﻿# Core runtime
+pydantic>=2.8,<3
+langchain-core>=0.3,<0.4
+
+# OpenVINO + Qwen3 runtime (optional for current document-only MVP path)
+transformers>=4.45,<5
+optimum[openvino]>=1.23,<2
+openvino>=2025.0.0
