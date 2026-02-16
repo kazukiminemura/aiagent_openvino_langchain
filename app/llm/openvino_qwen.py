@@ -4,13 +4,14 @@ from dataclasses import dataclass
 from pathlib import Path
 import os
 
-from app.config import MODEL_CACHE_DIR, MODEL_ID
+from app.config import MODEL_CACHE_DIR, MODEL_ID, OPENVINO_DEVICE
 
 
 @dataclass
 class OpenVINOQwenConfig:
     model_id: str = MODEL_ID
     model_cache_dir: str = MODEL_CACHE_DIR
+    device: str = OPENVINO_DEVICE
     max_new_tokens: int = 512
     temperature: float = 0.2
 
@@ -42,7 +43,11 @@ class OpenVINOQwen:
 
         model_source = self._resolve_model_source()
         tokenizer = AutoTokenizer.from_pretrained(model_source, trust_remote_code=True)
-        model = OVModelForCausalLM.from_pretrained(model_source, trust_remote_code=True)
+        model = OVModelForCausalLM.from_pretrained(
+            model_source,
+            trust_remote_code=True,
+            device=self.cfg.device,
+        )
         self._pipe = pipeline(
             "text-generation",
             model=model,

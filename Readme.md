@@ -3,6 +3,7 @@
 このMVPは `OpenVINO/Qwen3-8B-int8-ov` と `LangGraph` を前提にしたエージェント構成です。
 現在は **インターネット検索なし** で、`文書作成` と `ローカル検索` を実装済みです。
 LLM実行の互換セットは `torch==2.10.0 / optimum-intel==1.25.2 / transformers==4.53.3` で固定しています。
+LLM推論デバイスは既定で `OPENVINO_DEVICE=AUTO:NPU,GPU`（CPU以外優先）です。
 
 ## 実装済み機能
 - `document_create_tool`
@@ -42,6 +43,7 @@ python -m pip config list
 ```powershell
 $env:MODEL_ID="OpenVINO/Qwen3-8B-int8-ov"
 $env:MODEL_CACHE_DIR="C:\\models\\hf-cache"
+$env:OPENVINO_DEVICE="GPU"   # 例: GPU固定（NPUなら "NPU"）
 ```
 
 モデルの事前取得（推奨）:

@@ -29,6 +29,10 @@ class OpenVINOQwenResolveModelTests(unittest.TestCase):
         source = llm.ensure_model_downloaded()
         self.assertEqual(source, str(self.temp.resolve()))
 
+    def test_default_device_is_non_cpu(self) -> None:
+        cfg = OpenVINOQwenConfig(model_id=str(self.temp))
+        self.assertNotEqual(cfg.device.upper(), "CPU")
+
     def test_patch_torch_onnx_compat_exposes_required_symbols(self) -> None:
         llm = OpenVINOQwen(cfg=OpenVINOQwenConfig(model_id=str(self.temp)))
         llm._patch_torch_onnx_compat()
