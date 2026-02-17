@@ -71,6 +71,19 @@ python -m app.main chat --prompt "app以下のpythonファイルを教えて"
 python -m app.main chat --prompt "このコンピュータの中から *.py を検索して 20件 返して"
 ```
 
+## 外部アプリ連携（FastAPI）
+APIサーバー起動:
+```powershell
+uvicorn app.api.server:app --host 0.0.0.0 --port 8000
+```
+
+主要エンドポイント:
+- `GET /v1/health`
+- `POST /v1/agent/chat`
+- `POST /v1/tools/create`
+- `POST /v1/tools/search`
+- `POST /v1/model/download`
+
 ## 手動実行（デバッグ用）
 ```powershell
 python -m app.main create --title "調査メモ" --content "OpenVINOでMVP作成" --format md --output-dir notes
